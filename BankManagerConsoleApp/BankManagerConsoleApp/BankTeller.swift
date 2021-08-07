@@ -39,17 +39,19 @@ class BankTeller {
     }
     
     // MARK:- internal Method
-    func handleTask(with client: Client, readyForWork: @escaping () -> Void) {
+    func handleTask(with client: Client, group: DispatchGroup, readyForWork: @escaping () -> Void) {
         guard let queueTicket = client.submitQueueTicket() else {
             return
         }
         
         setClient(client: client)
         showMessage(taskMessage: .beginning, number: queueTicket, task: client.task)
+        group.enter()
         DispatchQueue.global().asyncAfter(deadline: .now() + client.task.taskTime) {
             self.showMessage(taskMessage: .completion, number: queueTicket, task: client.task)
             self.setClient(client: nil)
             readyForWork()
+            group.leave()
         }
     }
 }

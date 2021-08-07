@@ -63,25 +63,26 @@ extension Bank {
         return false
     }
     
-    func handleTask(bankTeller: BankTeller) {
+    func handleTask(bankTeller: BankTeller, group: DispatchGroup) {
         if let waitingQueue = taskWaitingQueueMap[bankTeller.role],
            let client = waitingQueue.dequeue() {
-            bankTeller.handleTask(with: client) {
-                self.handleTask(bankTeller: bankTeller)
+            bankTeller.handleTask(with: client, group: group) {
+                self.handleTask(bankTeller: bankTeller, group:group)
             }
         }
     }
     
     func doTask() -> TaskReport {
         let startTime = DispatchTime.now()
-        
+        let group = DispatchGroup()
         for bankTeller in bankTellers {
-            DispatchQueue.global().async {
-                self.handleTask(bankTeller: bankTeller)
+            DispatchQueue.global().async(group: group) {
+                self.handleTask(bankTeller: bankTeller, group: group)
             }
         }
         
-        while isSomeClientsQueueNotEmpty() || isAllBankTellersNotCompleted() {}
+        group.wait()
+//        while isSomeClientsQueueNotEmpty() || isAllBankTellersNotCompleted() {}
         
         let endTime = DispatchTime.now()
         let totalTaskTIme = calculateTotalTaskTime(start: startTime, end: endTime)
